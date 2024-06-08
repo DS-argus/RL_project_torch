@@ -1,6 +1,7 @@
 import numpy as np
 import random
 from tree import SumTree, MinTree
+import torch
 
 class PriorityExperienceReplay(object):
     '''
@@ -78,7 +79,8 @@ class PriorityExperienceReplay(object):
         batch_next_states = self.next_states[rd_idx]
         batch_dones = self.dones[rd_idx]
 
-        return batch_states, batch_actions, batch_rewards, batch_next_states, batch_dones, np.array(weight_batch), index_batch
+        
+        return  torch.from_numpy(batch_states), torch.from_numpy(batch_actions),batch_rewards, torch.from_numpy(batch_next_states), batch_dones, np.array(weight_batch), index_batch
 
     def update_priority(self, priority, index):
         self.sum_tree.update_priority(priority ** self.alpha, index)
@@ -87,3 +89,4 @@ class PriorityExperienceReplay(object):
 
     def update_max_priority(self, priority):
         self.max_priority = max(self.max_priority, priority)
+

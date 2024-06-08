@@ -15,7 +15,8 @@ DATA_DIR = os.path.join(ROOT_DIR, 'data/ml-1m/')
 STATE_SIZE = 10
 MAX_EPISODE_NUM = 8000
 
-os.environ["CUDA_VISIBLE_DEVICES"]="4"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
+
 
 if __name__ == "__main__":
 

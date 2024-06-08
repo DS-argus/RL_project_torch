@@ -35,7 +35,9 @@ class UserMovieEmbedding(nn.Module):
         user_ids, movie_ids = x[:, 0], x[:, 1]
         uemb = self.u_embedding(user_ids)
         memb = self.m_embedding(movie_ids)
+        #uemb.shape = memb.shape = batch, hidden
         m_u = (uemb * memb).sum(dim=1, keepdim=True)
+        #m_u.shape = batch,1
         return torch.sigmoid(self.m_u_fc(m_u))
 
 

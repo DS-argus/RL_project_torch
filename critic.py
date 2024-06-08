@@ -42,8 +42,8 @@ class Critic:
 
     def build_networks(self):
         # Build networks (dummy forward pass to initialize)
-        self.network(torch.zeros(1, self.embedding_dim), torch.zeros(1, 3 * self.embedding_dim))
-        self.target_network(torch.zeros(1, self.embedding_dim), torch.zeros(1, 3 * self.embedding_dim))
+        self.network([torch.zeros(1, self.embedding_dim), torch.zeros(1, 3 * self.embedding_dim)])
+        self.target_network([torch.zeros(1, self.embedding_dim), torch.zeros(1, 3 * self.embedding_dim)])
     
     def update_target_network(self):
         # Soft target network update
@@ -62,7 +62,8 @@ class Critic:
         weight_batch = torch.tensor(weight_batch, dtype=torch.float32)
         self.optimizer.zero_grad()
         outputs = self.network(inputs)
-        loss = self.loss_fn(outputs, td_targets)
+        
+        loss = self.loss_fn(outputs, torch.from_numpy(td_targets))
         weighted_loss = (loss * weight_batch).mean()
         weighted_loss.backward()
         self.optimizer.step()

@@ -48,10 +48,15 @@ class DRRAgent:
         embedding_save_file_dir = ROOT_DIR + '/save_weights/user_movie_embedding_case4.pth'
         assert os.path.exists(
             embedding_save_file_dir), f"embedding save file directory: '{embedding_save_file_dir}' is wrong."
-        self.embedding_network.load_state_dict(torch.load(embedding_save_file_dir))
+
+        # self.embedding_network.load_state_dict(torch.load(embedding_save_file_dir))
+        
+        embedding_network_checkpoint = torch.load(embedding_save_file_dir)
+        self.embedding_network.m_embedding.weight.data = embedding_network_checkpoint['m_embedding.weight']
+        self.embedding_network.u_embedding.weight.data = embedding_network_checkpoint['u_embedding.weight']
 
         self.srm_ave = DRRAveStateRepresentation(self.embedding_dim)
-        self.srm_ave(torch.zeros((1, 100)), torch.zeros((1, state_size, 100)))
+        self.srm_ave([torch.zeros((1, 100)), torch.zeros((1, state_size, 100))])
 
         # PER
         self.buffer = PriorityExperienceReplay(
@@ -94,7 +99,7 @@ class DRRAgent:
         if items_ids is None:
             items_ids = np.array(list(set(i for i in range(self.items_num)) - recommended_items))
 
-        items_ebs = self.embedding_network.movie_embedding(torch.tensor(items_ids, dtype=torch.long)).detach().numpy()
+        items_ebs = self.embedding_network.m_embedding(torch.tensor(items_ids, dtype=torch.long))#.detach().numpy()
         action = torch.transpose(action, 0, 1)
         if top_k:
             item_indice = np.argsort(torch.matmul(items_ebs, action).squeeze().numpy())[-top_k:]
@@ -128,11 +133,17 @@ class DRRAgent:
             while not done:
                 # Observe current state & Find action
                 # Get embeddings
-                user_eb = self.embedding_network.user_embedding(torch.tensor([user_id], dtype=torch.long)).detach().numpy()
-                items_eb = self.embedding_network.movie_embedding(torch.tensor(items_ids, dtype=torch.long)).detach().numpy()
+                user_eb = self.embedding_network.u_embedding(torch.tensor([user_id], dtype=torch.long)).detach().numpy()
+                items_eb = self.embedding_network.m_embedding(torch.tensor(items_ids, dtype=torch.long)).detach().numpy()
                 # Get state using SRM
+                
+                # print(['here',
+                #     torch.tensor(user_eb, dtype=torch.float32).shape, 
+                #     torch.tensor(items_eb, dtype=torch.float32).unsqueeze(0).shape
+                # ])
+                
                 state = self.srm_ave([
-                    torch.tensor(user_eb, dtype=torch.float32).unsqueeze(0), 
+                    torch.tensor(user_eb, dtype=torch.float32), 
                     torch.tensor(items_eb, dtype=torch.float32).unsqueeze(0)
                 ])
                 # Get action (ranking score)
@@ -155,13 +166,16 @@ class DRRAgent:
                     reward = np.sum(reward)
 
                 # Get next state
-                next_items_eb = self.embedding_network.movie_embedding(torch.tensor(next_items_ids, dtype=torch.long)).detach().numpy()
+                next_items_eb = self.embedding_network.m_embedding(torch.tensor(next_items_ids, dtype=torch.long)).detach().numpy()
                 next_state = self.srm_ave([
-                    torch.tensor(user_eb, dtype=torch.float32).unsqueeze(0), 
+                    torch.tensor(user_eb, dtype=torch.float32), 
                     torch.tensor(next_items_eb, dtype=torch.float32).unsqueeze(0)
                 ])
 
                 # Store in buffer
+                action = action.detach().numpy()
+                state = state.detach().numpy()
+                next_state = next_state.detach().numpy()
                 self.buffer.append(state, action, reward, next_state, done)
 
                 if self.buffer.crt_idx > 1 or self.buffer.is_full:
@@ -174,7 +188,7 @@ class DRRAgent:
                     qs = self.critic.network([target_next_action, batch_next_states])
                     target_qs = self.critic.target_network([target_next_action, batch_next_states])
                     min_qs = torch.min(torch.cat([target_qs, qs], dim=1), dim=1, keepdim=True).values  # Double Q method
-                    td_targets = self.calculate_td_target(batch_rewards, min_qs, batch_dones)
+                    td_targets = self.calculate_td_target(batch_rewards, min_qs.detach().numpy(), batch_dones)
 
                     # Update priority
                     for (p, i) in zip(td_targets, index_batch):
@@ -191,7 +205,7 @@ class DRRAgent:
 
                 items_ids = next_items_ids
                 episode_reward += reward
-                mean_action += torch.sum(action[0]).item() / len(action[0])
+                mean_action += np.sum(action[0]).item() / len(action[0])
                 steps += 1
 
                 if reward > 0:
