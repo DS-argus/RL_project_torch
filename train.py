@@ -15,7 +15,7 @@ DATA_DIR = os.path.join(ROOT_DIR, 'data/ml-1m/')
 STATE_SIZE = 10
 MAX_EPISODE_NUM = 8000
 
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+# os.environ["CUDA_VISIBLE_DEVICES"]="-1"
 
 
 if __name__ == "__main__":
@@ -78,4 +78,4 @@ if __name__ == "__main__":
                            STATE_SIZE, use_wandb=False)
     recommender.actor.build_networks()
     recommender.critic.build_networks()
-    recommender.train(MAX_EPISODE_NUM, load_model=False)
+    recommender.train(MAX_EPISODE_NUM, load_model=False, top_k=5)
