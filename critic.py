@@ -7,15 +7,13 @@ class CriticNetwork(nn.Module):
     def __init__(self, embedding_dim, hidden_dim):
         super(CriticNetwork, self).__init__()
         self.fc1 = nn.Linear(3 * embedding_dim, embedding_dim)
-        self.concat_fc = nn.Linear(2 * embedding_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.fc2 = nn.Linear(2 * embedding_dim, hidden_dim)
         self.fc3 = nn.Linear(hidden_dim, hidden_dim)
         self.out = nn.Linear(hidden_dim, 1)
         
     def forward(self, x):
         s = torch.relu(self.fc1(x[1]))
         s = torch.cat([x[0], s], dim=1)
-        s = torch.relu(self.concat_fc(s))
         s = torch.relu(self.fc2(s))
         s = torch.relu(self.fc3(s))
         return self.out(s)

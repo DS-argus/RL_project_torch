@@ -31,12 +31,13 @@ def evaluate(recommender, env, check_movies: bool=False, top_k: int=1, length: i
         print(f'user_id : {user_id}, rated_items_length:{len(env.user_items)}')
 
     while not done:
-        user_eb = recommender.embedding_network.user_embedding(torch.tensor(user_id, dtype=torch.long))
-        items_eb = recommender.embedding_network.movie_embedding(torch.tensor(items_ids, dtype=torch.long))
+        user_eb = recommender.embedding_network.u_embedding(torch.tensor([user_id], dtype=torch.long))
+        items_eb = recommender.embedding_network.m_embedding(torch.tensor(items_ids, dtype=torch.long))
 
-        state = recommender.srm_ave(user_eb.unsqueeze(0), items_eb.unsqueeze(0))
+        # state = recommender.srm_ave(user_eb.unsqueeze(0), items_eb.unsqueeze(0))
+        state = recommender.srm_ave([torch.tensor(user_eb, dtype=torch.float32), torch.tensor(items_eb, dtype=torch.float32).unsqueeze(0)])
 
-        action = recommender.actor(state)
+        action = recommender.actor.network(state)
 
         recommended_item = recommender.recommend_item(action, env.recommended_items, top_k=top_k)
 
@@ -64,7 +65,7 @@ def evaluate(recommender, env, check_movies: bool=False, top_k: int=1, length: i
     if check_movies:
         print(f"\tprecision@{top_k} : {mean_precision/steps}, ndcg@{top_k} : {mean_ndcg/steps}, episode_reward : {episode_reward/steps}\n")
 
-    return mean_precision, mean_ndcg, episode_reward/steps
+    return mean_precision/steps, mean_ndcg/steps, episode_reward/steps
 
 def calculate_ndcg(rel, irel):
     dcg = 0
@@ -105,10 +106,10 @@ if __name__ == "__main__":
     print("DONE!")
     time.sleep(2)
 
-    saved_actor = './save_model/trail-2024-06-07-16-59-23/actor_8000_fixed.pth'
-    saved_critic = './save_model/trail-2024-06-07-16-59-23/critic_8000_fixed.pth'
+    saved_actor = './save_model/trail-2024-06-10-17-09-40/actor_8000_fixed.pth'
+    saved_critic = './save_model/trail-2024-06-10-17-09-40/critic_8000_fixed.pth'
 
-    TOP_K = 1 
+    TOP_K = 5 
     LENGTH = 100
 
     sum_precision, sum_ndcg = 0, 0
@@ -129,4 +130,4 @@ if __name__ == "__main__":
             break
 
     print("\n[FINAL RESULT]")
-    print(f'precision@{TOP_K} : {sum_precision/len(eval_users_dict)}, ndcg@{TOP_K} : {sum_ndcg/len(eval_users_dict)}')
+    print(f'precision@{TOP_K} : {sum_precision/(end_evaluation)}, ndcg@{TOP_K} : {sum_ndcg/(end_evaluation)}')

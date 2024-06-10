@@ -102,7 +102,7 @@ class DRRAgent:
         items_ebs = self.embedding_network.m_embedding(torch.tensor(items_ids, dtype=torch.long))#.detach().numpy()
         action = torch.transpose(action, 0, 1)
         if top_k:
-            item_indice = np.argsort(torch.matmul(items_ebs, action).squeeze().numpy())[-top_k:]
+            item_indice = np.argsort(torch.matmul(items_ebs, action).squeeze().detach().numpy())[-top_k:]
             return items_ids[item_indice]
         else:
             item_idx = torch.argmax(torch.matmul(items_ebs, action)).item()
